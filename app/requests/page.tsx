@@ -24,10 +24,10 @@ interface Request {
 export default function RequestsPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const router = useRouter();
-  const currentUid = auth.currentUser?.uid;
 
   useEffect(() => {
-    if (!currentUid) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
       toast.error("Vous devez être connecté");
       router.push('/login');
       return;
@@ -37,7 +37,7 @@ export default function RequestsPage() {
       try {
         const q = query(
           collection(db, 'friendRequests'),
-          where('toUid', '==', currentUid),
+          where('toUid', '==', currentUser.uid),
           where('status', '==', 'pending')
         );
         const snapshot = await getDocs(q);
@@ -48,7 +48,6 @@ export default function RequestsPage() {
           const data = docSnap.data();
           const fromUid = data.fromUid;
 
-          // Aller chercher le nom dans users
           const userSnap = await getDocs(
             query(collection(db, 'users'), where('uid', '==', fromUid))
           );
@@ -65,29 +64,31 @@ export default function RequestsPage() {
 
         setRequests(result);
       } catch (err: any) {
-        toast.error('Erreur récupération demandes : ' + err.message);
+        toast.error('Erreur récupération des demandes : ' + err.message);
       }
     };
 
     fetchRequests();
-  }, [currentUid, router]);
+  }, [router]);
 
   const handleAccept = async (req: Request) => {
     try {
-      // Ajouter dans la collection friends pour les 2
-      await addDoc(collection(db, 'friends'), {
-        userUid: currentUid,
-        friendUid: req.fromUid,
-        createdAt: serverTimestamp(),
-      });
-      await addDoc(collection(db, 'friends'), {
-        userUid: req.fromUid,
-        friendUid: currentUid,
-        createdAt: serverTimestamp(),
-      });
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
 
-      // Supprimer la demande
-      await deleteDoc(doc(db, 'friendRequests', req.id));
+      await Promise.all([
+        addDoc(collection(db, 'friends'), {
+          userUid: currentUser.uid,
+          friendUid: req.fromUid,
+          createdAt: serverTimestamp(),
+        }),
+        addDoc(collection(db, 'friends'), {
+          userUid: req.fromUid,
+          friendUid: currentUser.uid,
+          createdAt: serverTimestamp(),
+        }),
+        deleteDoc(doc(db, 'friendRequests', req.id)),
+      ]);
 
       toast.success(`Vous êtes maintenant ami avec ${req.fromName}`);
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
@@ -102,13 +103,13 @@ export default function RequestsPage() {
       toast.info(`Demande refusée`);
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
     } catch (err: any) {
-      toast.error('Erreur suppression : ' + err.message);
+      toast.error('Erreur refus : ' + err.message);
     }
   };
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Demandes reçues</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">Demandes d’amis reçues</h1>
 
       <div className="w-full max-w-xl space-y-4">
         {requests.length === 0 ? (
@@ -119,9 +120,7 @@ export default function RequestsPage() {
               key={req.id}
               className="bg-white rounded-lg shadow p-4 flex justify-between items-center"
             >
-              <div>
-                <p className="text-gray-800 font-medium">{req.fromName}</p>
-              </div>
+              <p className="text-gray-800 font-medium">{req.fromName}</p>
               <div className="flex space-x-2">
                 <button
                   onClick={() => handleAccept(req)}
