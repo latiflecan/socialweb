@@ -16,10 +16,11 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success('Connexion réussie 🎉');
-      router.push('/home');
-    } catch (error: any) {
-      console.error('Erreur connexion:', error.message);
-      toast.error(error.message);
+      router.push('/profile');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      console.error('Erreur connexion:', message);
+      toast.error(message);
     }
   };
 

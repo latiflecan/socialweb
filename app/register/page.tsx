@@ -12,17 +12,16 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('Inscription réussie :', userCredential.user);
-
+      await createUserWithEmailAndPassword(auth, email, password);
       toast.success('Inscription réussie 🎉');
       router.push('/login');
-    } catch (error: any) {
-      console.error('Erreur inscription:', error.message);
-      toast.error(error.message);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Une erreur est survenue';
+      toast.error(message);
     }
   };
 
@@ -42,7 +41,7 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600">Adresse e-mail</label>
+            <label className="block text-sm text-gray-600">Email</label>
             <input
               type="email"
               required
