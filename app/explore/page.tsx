@@ -8,130 +8,134 @@ import {
   query,
   where,
   getDocs,
-  DocumentData,
+  deleteDoc,
+  doc,
+  addDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 
-interface Friend {
-  uid: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface SentRequest {
+interface Request {
   id: string;
-  toName: string;
+  fromUid: string;
+  fromName: string;
 }
 
 export default function ExplorePage() {
+  const [requests, setRequests] = useState<Request[]>([]);
   const router = useRouter();
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [sentRequests, setSentRequests] = useState<SentRequest[]>([]);
-  const currentUser = auth.currentUser;
+  const currentUid = auth.currentUser?.uid;
 
   useEffect(() => {
-    if (!currentUser) {
-      toast.error('Veuillez vous connecter');
+    if (!currentUid) {
+      toast.error('Vous devez être connecté');
       router.push('/login');
       return;
     }
 
-    const fetchData = async () => {
+    const fetchRequests = async () => {
       try {
-        const uid = currentUser.uid;
-
-        // 🔹 Liste d'amis
-        const friendsRef = query(
-          collection(db, 'friends'),
-          where('userUid', '==', uid)
-        );
-        const friendsSnap = await getDocs(friendsRef);
-        const friendsList: Friend[] = [];
-
-        for (const docSnap of friendsSnap.docs) {
-          const friendUid = docSnap.data().friendUid;
-
-          const userSnap = await getDocs(
-            query(collection(db, 'users'), where('uid', '==', friendUid))
-          );
-          const user = userSnap.docs[0]?.data() as DocumentData;
-
-          if (user) {
-            friendsList.push({
-              uid: user.uid,
-              firstName: user.firstName,
-              lastName: user.lastName,
-            });
-          }
-        }
-        setFriends(friendsList);
-
-        // 🔹 Demandes envoyées
-        const requestsRef = query(
+        const q = query(
           collection(db, 'friendRequests'),
-          where('fromUid', '==', uid)
+          where('toUid', '==', currentUid),
+          where('status', '==', 'pending')
         );
-        const requestsSnap = await getDocs(requestsRef);
-        const requestsList: SentRequest[] = [];
+        const snapshot = await getDocs(q);
 
-        for (const docSnap of requestsSnap.docs) {
-          const toUid = docSnap.data().toUid;
+        const result: Request[] = [];
+
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+          const fromUid = data.fromUid;
 
           const userSnap = await getDocs(
-            query(collection(db, 'users'), where('uid', '==', toUid))
+            query(collection(db, 'users'), where('uid', '==', fromUid))
           );
-          const toUser = userSnap.docs[0]?.data();
+          const fromUser = userSnap.docs[0]?.data();
 
-          requestsList.push({
+          result.push({
             id: docSnap.id,
-            toName: toUser
-              ? `${toUser.firstName} ${toUser.lastName}`
-              : toUid,
+            fromUid,
+            fromName: fromUser
+              ? `${fromUser.firstName} ${fromUser.lastName}`
+              : fromUid,
           });
         }
-        setSentRequests(requestsList);
 
-      } catch (err: any) {
-        toast.error('Erreur lors du chargement : ' + err.message);
+        setRequests(result);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          toast.error('Erreur récupération demandes : ' + error.message);
+        }
       }
     };
 
-    fetchData();
-  }, [currentUser, router]);
+    fetchRequests();
+  }, [currentUid, router]);
+
+  const handleAccept = async (req: Request) => {
+    try {
+      await addDoc(collection(db, 'friends'), {
+        userUid: currentUid,
+        friendUid: req.fromUid,
+        createdAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, 'friends'), {
+        userUid: req.fromUid,
+        friendUid: currentUid,
+        createdAt: serverTimestamp(),
+      });
+      await deleteDoc(doc(db, 'friendRequests', req.id));
+      toast.success(`Vous êtes maintenant ami avec ${req.fromName}`);
+      setRequests((prev) => prev.filter((r) => r.id !== req.id));
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error('Erreur acceptation : ' + error.message);
+      }
+    }
+  };
+
+  const handleRefuse = async (req: Request) => {
+    try {
+      await deleteDoc(doc(db, 'friendRequests', req.id));
+      toast.info('Demande refusée');
+      setRequests((prev) => prev.filter((r) => r.id !== req.id));
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error('Erreur suppression : ' + error.message);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">🌍 Explorer</h1>
-
-      {/* Amis */}
-      <div className="w-full max-w-3xl mb-10">
-        <h2 className="text-2xl font-semibold mb-4 text-blue-600">👥 Mes amis</h2>
-        {friends.length === 0 ? (
-          <p className="text-gray-600">Vous n’avez pas encore d’amis.</p>
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">Demandes d’amis reçues</h1>
+      <div className="w-full max-w-xl space-y-4">
+        {requests.length === 0 ? (
+          <p className="text-center text-gray-600">Aucune demande en attente.</p>
         ) : (
-          <ul className="space-y-3">
-            {friends.map((friend) => (
-              <li key={friend.uid} className="card">
-                {friend.firstName} {friend.lastName}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Demandes envoyées */}
-      <div className="w-full max-w-3xl">
-        <h2 className="text-2xl font-semibold mb-4 text-purple-600">📤 Demandes envoyées</h2>
-        {sentRequests.length === 0 ? (
-          <p className="text-gray-600">Aucune demande envoyée.</p>
-        ) : (
-          <ul className="space-y-3">
-            {sentRequests.map((req) => (
-              <li key={req.id} className="card">
-                {req.toName}
-              </li>
-            ))}
-          </ul>
+          requests.map((req) => (
+            <div
+              key={req.id}
+              className="bg-white rounded-lg shadow p-4 flex justify-between items-center"
+            >
+              <p className="text-gray-800 font-medium">{req.fromName}</p>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleAccept(req)}
+                  className="btn-primary"
+                >
+                  Accepter
+                </button>
+                <button
+                  onClick={() => handleRefuse(req)}
+                  className="btn-neutral"
+                >
+                  Refuser
+                </button>
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>

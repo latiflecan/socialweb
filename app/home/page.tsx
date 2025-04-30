@@ -26,7 +26,7 @@ export default function HomePage() {
           } else {
             setFirstName(user.email); // fallback si prénom non défini
           }
-        } catch (err) {
+        } catch {
           toast.error('Erreur lors du chargement du prénom');
           setFirstName(user.email);
         }
@@ -55,25 +55,25 @@ export default function HomePage() {
         <div className="space-y-4">
           <button
             onClick={() => router.push('/explore')}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg"
+            className="btn-primary w-full"
           >
             🔍 Explorer les utilisateurs
           </button>
           <button
             onClick={() => router.push('/requests')}
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg"
+            className="btn-neutral w-full"
           >
             📬 Voir les demandes
           </button>
           <button
             onClick={() => router.push('/profile')}
-            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg"
+            className="btn-primary w-full"
           >
             👤 Mon profil
           </button>
           <button
             onClick={handleLogout}
-            className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg"
+            className="btn-danger w-full"
           >
             🚪 Se déconnecter
           </button>

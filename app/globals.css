@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Styles globaux personnalisés */
+/* 🎨 Style global personnalisé */
 body {
   @apply bg-gray-100 text-gray-800 font-sans;
 }
@@ -15,6 +15,7 @@ button {
   @apply transition duration-200 ease-in-out focus:outline-none;
 }
 
+/* 🧩 Classes personnalisées réutilisables */
 .btn-primary {
   @apply bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600;
 }

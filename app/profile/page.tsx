@@ -6,6 +6,7 @@ import { auth, db, storage } from '@/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'react-toastify';
+import Image from 'next/image';
 
 interface UserData {
   firstName: string;
@@ -81,8 +82,10 @@ export default function ProfilePage() {
         photoURL: newPhotoURL || undefined,
       });
       setPhotoPreview(newPhotoURL);
-    } catch (err: any) {
-      toast.error('Erreur : ' + err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error('Erreur : ' + error.message);
+      }
     }
   };
 
@@ -94,10 +97,12 @@ export default function ProfilePage() {
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">👤 Mon Profil</h2>
 
         <div className="flex justify-center mb-6">
-          <img
+          <Image
             src={photoPreview || '/default-avatar.png'}
             alt="Photo de profil"
-            className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover"
+            width={128}
+            height={128}
+            className="rounded-full border-4 border-blue-500 object-cover"
           />
         </div>
 

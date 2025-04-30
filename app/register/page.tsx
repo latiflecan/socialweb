@@ -1,108 +1,92 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, addDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter();
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = userCred.user.uid;
 
-      // Mise à jour du nom complet dans Firebase Auth
-      await updateProfile(user, {
-        displayName: `${firstName} ${lastName}`
-      });
-
-      // Sauvegarde des infos dans Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
+      await addDoc(collection(db, 'users'), {
+        uid,
         firstName,
         lastName,
         phone,
         email,
-        createdAt: serverTimestamp()
       });
 
-      toast.success('Inscription réussie ✅');
-      router.push('/home');
-    } catch (error: any) {
-      toast.error('Erreur: ' + (error.message || 'Impossible de créer le compte'));
+      toast.success('Inscription réussie 🎉');
+      router.push('/login');
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error('Erreur : ' + error.message);
+      }
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <form
-        onSubmit={handleRegister}
-        className="bg-white p-10 rounded-xl shadow-xl w-full max-w-md"
-      >
-        <h1 className="text-3xl font-bold text-center mb-6">Inscription</h1>
-
-        <label className="block mb-2">Prénom</label>
-        <input
-          type="text"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          required
-          className="w-full mb-4 px-4 py-2 border rounded-md"
-        />
-
-        <label className="block mb-2">Nom</label>
-        <input
-          type="text"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          required
-          className="w-full mb-4 px-4 py-2 border rounded-md"
-        />
-
-        <label className="block mb-2">Téléphone</label>
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-          className="w-full mb-4 px-4 py-2 border rounded-md"
-        />
-
-        <label className="block mb-2">Adresse e-mail</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full mb-4 px-4 py-2 border rounded-md"
-        />
-
-        <label className="block mb-2">Mot de passe</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="w-full mb-6 px-4 py-2 border rounded-md"
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md"
-        >
-          S’inscrire
-        </button>
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-6">
+      <div className="card w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">Créer un compte</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Prénom"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Nom"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Téléphone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+          <input
+            type="email"
+            placeholder="Adresse e-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+          <button type="submit" className="btn-primary w-full">Créer un compte</button>
+        </form>
+      </div>
     </div>
   );
 }
