@@ -1,13 +1,15 @@
-import '../globals.css'; // <- change si erreur persistante
-
+import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Navbar from '@/components/Navbar';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'SocialWeb',
-  description: 'Réseau social simplifié avec Next.js et Firebase',
+  description: 'Application sociale avec Next.js + Firebase',
 };
 
 export default function RootLayout({
@@ -17,8 +19,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <head />
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <Navbar />
+        <main className="pt-20">{children}</main>
+        <ToastContainer position="top-right" autoClose={3000} />
+      </body>
     </html>
   );
 }

@@ -2,6 +2,8 @@
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Configuration Firebase pour latifsocial-70853
 const firebaseConfig = {
@@ -16,5 +18,7 @@ const firebaseConfig = {
 // Initialisation de Firebase (évite les erreurs si déjà initialisé)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Authentification exportée pour être utilisée dans le projet
+// Export des services Firebase
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);

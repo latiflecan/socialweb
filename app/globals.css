@@ -2,16 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ✅ Styles globaux personnalisés */
-
+/* 🎨 Style global personnalisé */
 body {
   @apply bg-gray-100 text-gray-800 font-sans;
 }
 
 a {
-  @apply text-blue-600 hover:underline;
+  @apply text-blue-600 hover:underline transition duration-150 ease-in-out;
 }
 
 button {
-  @apply transition duration-200;
+  @apply transition duration-200 ease-in-out focus:outline-none;
 }
+
+/* 🧩 Classes personnalisées réutilisables */
+.btn-primary {
+  @apply bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600;
+}
+
+.btn-danger {
+  @apply bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600;
+}
+
+.btn-neutral {
+  @apply bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-md p-6;
+}  

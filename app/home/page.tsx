@@ -2,21 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/firebase';
+import { auth, db } from '@/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 
 export default function HomePage() {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         toast.error('Veuillez vous connecter');
         router.push('/login');
       } else {
-        setUserEmail(user.email);
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
+          const data = userSnap.data();
+          if (data?.firstName) {
+            setFirstName(data.firstName);
+          } else {
+            setFirstName(user.email); // fallback si prénom non défini
+          }
+        } catch (err) {
+          toast.error('Erreur lors du chargement du prénom');
+          setFirstName(user.email);
+        }
       }
     });
 
@@ -29,19 +42,43 @@ export default function HomePage() {
     router.push('/login');
   };
 
-  if (!userEmail) return null;
+  if (!firstName) return null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        Bienvenue {userEmail} 🎉
-      </h1>
-      <button
-        onClick={handleLogout}
-        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
-      >
-        Se déconnecter
-      </button>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-blue-100 to-purple-200 px-6">
+      <div className="bg-white rounded-xl shadow-xl p-10 w-full max-w-md text-center">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          Bienvenue, {firstName} 👋
+        </h1>
+        <p className="text-gray-600 mb-8">Choisis une action ci-dessous</p>
+
+        <div className="space-y-4">
+          <button
+            onClick={() => router.push('/explore')}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg"
+          >
+            🔍 Explorer les utilisateurs
+          </button>
+          <button
+            onClick={() => router.push('/requests')}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg"
+          >
+            📬 Voir les demandes
+          </button>
+          <button
+            onClick={() => router.push('/profile')}
+            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg"
+          >
+            👤 Mon profil
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg"
+          >
+            🚪 Se déconnecter
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
